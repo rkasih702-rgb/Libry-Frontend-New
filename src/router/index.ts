@@ -1,38 +1,38 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import LoginView from '../views/LoginView.vue' // Pastikan file LoginView kamu ada di folder views
+
+// Wajib import kembali LoginAdmin yang asli di folder admin lu
+import LoginAdmin from '@/views/admin/LoginAdmin.vue'
+import LoginView from '@/views/LoginView.vue' // atau file login user lu
+import DashboardAdmin from '@/views/admin/DashboardView.vue'
+import Katalog from '@/views/user/KatalogView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'login',
-      component: LoginView // Halaman utama langsung menampilkan form login
+      redirect: '/admin/login'
+    },
+    // INI JALUR ADMIN YANG TADI KETINGGALAN/KEHAPUS:
+    {
+      path: '/admin/login',
+      name: 'login-admin',
+      component: LoginAdmin
+    },
+    {
+      path: '/login',
+      name: 'login-user',
+      component: LoginView
     },
     {
       path: '/dashboard',
-      name: 'dashboard',
-      component: () => import('../views/DashboardView.vue')
+      name: 'dashboard-admin',
+      component: DashboardAdmin
     },
     {
-      path: '/data-buku',
-      name: 'data-buku',
-      component: () => import('../views/DataBukuView.vue')
-    },
-    {
-      path: '/data-petugas',
-      name: 'data-petugas',
-      component: () => import('../views/DataPetugasView.vue')
-    },
-    {
-      path: '/jadwal-shift',
-      name: 'jadwal-shift',
-      component: () => import('../views/JadwalShiftView.vue')
-    },
-    {
-      path: '/fasilitas',
-      name: 'fasilitas',
-      component: () => import('../views/FasilitasView.vue')
+      path: '/user/katalog',
+      name: 'katalog-user',
+      component: Katalog
     }
   ]
 })

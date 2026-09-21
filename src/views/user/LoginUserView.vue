@@ -3,8 +3,10 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+
 const isRegisterMode = ref(false)
 const role = ref<'pengunjung' | 'admin'>('pengunjung')
+
 const username = ref('kasih')
 const password = ref('kasihimut')
 const namaLengkap = ref('')
@@ -19,7 +21,7 @@ const handleSubmit = () => {
     namaLengkap.value = ''
   } else {
     if (role.value === 'admin') {
-      router.push('/dashboard')
+      router.push('/data-buku')
     } else {
       router.push({ 
         path: '/user/katalog', 
@@ -33,6 +35,8 @@ const handleSubmit = () => {
 <template>
   <div class="min-h-screen bg-[#fdfbf7] text-stone-800 flex items-center justify-center p-4 font-sans">
     <div class="w-full max-w-md bg-white border border-stone-200 rounded-2xl p-8 shadow-xl space-y-6">
+      
+      <!-- Logo SVG Modern -->
       <div class="text-center space-y-3">
         <div class="w-12 h-12 bg-[#8B5A2B]/10 text-[#8B5A2B] rounded-2xl border border-[#8B5A2B]/20 flex items-center justify-center mx-auto shadow-inner">
           <svg class="w-6 h-6 text-[#8B5A2B]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -49,6 +53,7 @@ const handleSubmit = () => {
         </div>
       </div>
 
+      <!-- Tab Pilih Peran -->
       <div v-if="!isRegisterMode" class="grid grid-cols-2 gap-2 bg-[#f4efe6] p-1.5 rounded-xl border border-stone-200">
         <button 
           type="button"
@@ -68,7 +73,10 @@ const handleSubmit = () => {
         </button>
       </div>
 
+      <!-- Form Utama dengan @submit.prevent -->
       <form @submit.prevent="handleSubmit" class="space-y-4">
+        
+        <!-- Input Nama Lengkap (Register Mode) -->
         <div v-if="isRegisterMode" class="space-y-1.5">
           <label class="text-[11px] font-semibold text-stone-700">Nama Lengkap</label>
           <input 
@@ -91,6 +99,7 @@ const handleSubmit = () => {
           />
         </div>
 
+        <!-- Input Password dengan Tombol Ikon Mata -->
         <div class="space-y-1.5">
           <label class="text-[11px] font-semibold text-stone-700">Password</label>
           <div class="relative">
@@ -106,10 +115,12 @@ const handleSubmit = () => {
               @click="showPassword = !showPassword"
               class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#8B5A2B] hover:text-[#704721] focus:outline-none cursor-pointer"
             >
+              <!-- Ikon Mata Terbuka -->
               <svg v-if="showPassword" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
+              <!-- Ikon Mata Tertutup -->
               <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.027 10.027 0 014.132-5.411m3.89-1.315A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21m-4.125-2.175L9.88 9.88M3 3l18 18" />
               </svg>
@@ -125,6 +136,7 @@ const handleSubmit = () => {
         </button>
       </form>
 
+      <!-- Tombol Alih Mode Login / Register -->
       <div class="text-center pt-2 border-t border-stone-100">
         <p class="text-xs text-stone-500">
           {{ isRegisterMode ? 'Sudah punya akun?' : 'Belum punya akun?' }}
