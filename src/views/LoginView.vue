@@ -1,31 +1,93 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import API from '@/services/api'
 
 const router = useRouter()
+
 const isRegisterMode = ref(false)
 const role = ref<'pengunjung' | 'admin'>('pengunjung')
-const username = ref('kasih')
-const password = ref('kasihimut')
+
+const username = ref('zen')
+const password = ref('')
 const namaLengkap = ref('')
 const showPassword = ref(false)
 
-const handleSubmit = () => {
-  if (isRegisterMode.value) {
-    alert(`Pendaftaran akun untuk "${namaLengkap.value || username.value}" berhasil! Silakan masuk.`)
-    isRegisterMode.value = false
-    username.value = 'kasih'
-    password.value = 'kasihimut'
-    namaLengkap.value = ''
-  } else {
-    if (role.value === 'admin') {
-      router.push('/dashboard')
+const errorMessage = ref('')
+const isLoading = ref(false)
+
+const handleSubmit = async () => {
+  errorMessage.value = ''
+  isLoading.value = true
+
+  try {
+    if (isRegisterMode.value) {
+      // ----------------------------------------------------
+      // 1. PROSES REGISTER
+      // ----------------------------------------------------
+      const registerPayload = {
+        username: username.value,
+        password: password.value,
+        nama: namaLengkap.value || username.value,
+        role: role.value === 'admin' ? 'admin' : 'pengunjung'
+      }
+
+      await API.post('/register', registerPayload)
+
+      alert(`Pendaftaran akun untuk "${namaLengkap.value || username.value}" berhasil! Silakan masuk.`)
+      isRegisterMode.value = false
+      password.value = ''
+      namaLengkap.value = ''
+
     } else {
-      router.push({ 
-        path: '/user/katalog', 
-        query: { nama: username.value || 'Pengunjung' } 
-      })
+      // ----------------------------------------------------
+      // 2. PROSES LOGIN
+      // ----------------------------------------------------
+      // BERSIHKAN DATA LAMA AGAR AKUN SEBELUMNYA (MISAL: RAY) TIDAK NYANGKUT
+      localStorage.clear()
+
+      const loginPayload = {
+        username: username.value,
+        password: password.value
+      }
+
+      const response = await API.post('/login', loginPayload)
+
+      // Ambil token dari respon backend Go
+      const token = response.data.token || response.data.data?.token || response.data.access_token
+      const userRole = response.data.role || response.data.data?.role || role.value
+      const loggedUsername = response.data.username || response.data.data?.username || username.value
+
+      if (token) {
+        // Simpan data sesi baru milik user yang sedang login (Zen)
+        localStorage.setItem('token', token)
+        localStorage.setItem('nama_user', loggedUsername)
+        localStorage.setItem('role', userRole)
+
+        // Redirect sesuai role
+        if (role.value === 'admin' || userRole === 'admin' || userRole === 'petugas') {
+          router.push('/admin/buku')
+        } else {
+          router.push({ 
+            path: '/user/katalog', 
+            query: { nama: loggedUsername } 
+          })
+        }
+      } else {
+        errorMessage.value = 'Login berhasil, tetapi token tidak ditemukan dari respon server.'
+      }
     }
+  } catch (error: any) {
+    console.error('Terjadi kesalahan login:', error)
+    if (error.response && error.response.data && error.response.data.message) {
+      errorMessage.value = error.response.data.message
+    } else if (error.response && error.response.status === 401) {
+      errorMessage.value = 'Username atau password salah!'
+    } else {
+      errorMessage.value = 'Gagal terhubung ke server Go. Pastikan server backend aktif.'
+    }
+  } finally {
+    isLoading.value = false
   }
 }
 </script>
@@ -33,6 +95,8 @@ const handleSubmit = () => {
 <template>
   <div class="min-h-screen bg-[#fdfbf7] text-stone-800 flex items-center justify-center p-4 font-sans">
     <div class="w-full max-w-md bg-white border border-stone-200 rounded-2xl p-8 shadow-xl space-y-6">
+      
+      <!-- Logo SVG -->
       <div class="text-center space-y-3">
         <div class="w-12 h-12 bg-[#8B5A2B]/10 text-[#8B5A2B] rounded-2xl border border-[#8B5A2B]/20 flex items-center justify-center mx-auto shadow-inner">
           <svg class="w-6 h-6 text-[#8B5A2B]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -44,12 +108,13 @@ const handleSubmit = () => {
             {{ isRegisterMode ? 'Daftar Akun Baru' : 'Perpustakaan Digital' }}
           </h1>
           <p class="text-xs text-stone-500 mt-1">
-            {{ isRegisterMode ? 'Lengkapi data untuk mendaftar sebagai pengunjung' : 'Masuk ke akun Anda untuk melanjutkan' }}
+            {{ isRegisterMode ? 'Lengkapi data untuk mendaftar' : 'Masuk ke akun Anda untuk melanjutkan' }}
           </p>
         </div>
       </div>
 
-      <div v-if="!isRegisterMode" class="grid grid-cols-2 gap-2 bg-[#f4efe6] p-1.5 rounded-xl border border-stone-200">
+      <!-- Tab Pilih Peran (Pengunjung / Admin) -->
+      <div class="grid grid-cols-2 gap-2 bg-[#f4efe6] p-1.5 rounded-xl border border-stone-200">
         <button 
           type="button"
           @click="role = 'pengunjung'"
@@ -68,7 +133,16 @@ const handleSubmit = () => {
         </button>
       </div>
 
+      <!-- Peringatan Pesan Kesalahan -->
+      <div v-if="errorMessage" class="bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2">
+        <span>⚠️</span>
+        <p>{{ errorMessage }}</p>
+      </div>
+
+      <!-- Form Utama -->
       <form @submit.prevent="handleSubmit" class="space-y-4">
+        
+        <!-- Input Nama Lengkap (Register Mode) -->
         <div v-if="isRegisterMode" class="space-y-1.5">
           <label class="text-[11px] font-semibold text-stone-700">Nama Lengkap</label>
           <input 
@@ -81,7 +155,9 @@ const handleSubmit = () => {
         </div>
 
         <div class="space-y-1.5">
-          <label class="text-[11px] font-semibold text-stone-700">Username / NISN</label>
+          <label class="text-[11px] font-semibold text-stone-700">
+            {{ role === 'admin' ? 'NIP / Username Admin' : 'Username / NISN' }}
+          </label>
           <input 
             v-model="username" 
             type="text" 
@@ -91,6 +167,7 @@ const handleSubmit = () => {
           />
         </div>
 
+        <!-- Input Password -->
         <div class="space-y-1.5">
           <label class="text-[11px] font-semibold text-stone-700">Password</label>
           <div class="relative">
@@ -119,18 +196,23 @@ const handleSubmit = () => {
 
         <button 
           type="submit" 
-          class="w-full bg-[#8B5A2B] hover:bg-[#704721] text-white font-semibold text-xs py-3 rounded-xl shadow-md shadow-[#8B5A2B]/20 transition duration-200 mt-2 cursor-pointer"
+          :disabled="isLoading"
+          class="w-full bg-[#8B5A2B] hover:bg-[#704721] text-white font-semibold text-xs py-3 rounded-xl shadow-md shadow-[#8B5A2B]/20 transition duration-200 mt-2 cursor-pointer disabled:opacity-50"
         >
-          {{ isRegisterMode ? 'Daftar Sekarang' : (role === 'pengunjung' ? 'Masuk sebagai Pengunjung' : 'Masuk sebagai Admin') }}
+          <span v-if="isLoading">Memproses...</span>
+          <span v-else>
+            {{ isRegisterMode ? 'Daftar Sekarang' : (role === 'pengunjung' ? 'Masuk sebagai Pengunjung' : 'Masuk sebagai Admin') }}
+          </span>
         </button>
       </form>
 
+      <!-- Toggle Register / Login -->
       <div class="text-center pt-2 border-t border-stone-100">
         <p class="text-xs text-stone-500">
           {{ isRegisterMode ? 'Sudah punya akun?' : 'Belum punya akun?' }}
           <button 
             type="button"
-            @click="isRegisterMode = !isRegisterMode"
+            @click="isRegisterMode = !isRegisterMode; errorMessage = ''"
             class="text-[#8B5A2B] font-semibold hover:underline ml-1 focus:outline-none cursor-pointer"
           >
             {{ isRegisterMode ? 'Masuk di sini' : 'Daftar sekarang' }}
@@ -138,9 +220,6 @@ const handleSubmit = () => {
         </p>
       </div>
 
-      <p class="text-[10px] text-center text-stone-400">
-        Perpustakaan System v1.0 &bull; Vue 3 & Vite
-      </p>
     </div>
   </div>
 </template>
